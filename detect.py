@@ -15,6 +15,29 @@ import pandas as pd
 import random 
 import pickle as pkl
 import itertools
+from scipy.stats import entropy
+from sklearn.metrics import mutual_info_score
+
+def calculate_mutual_information(image, feature_map):
+    image_flattened = image.flatten()
+    feature_map_flattened = feature_map.flatten()
+    mi = mutual_info_score(image_flattened, feature_map_flattened)
+    return mi
+
+
+def calculate_entropy(prob_dist):
+    return entropy(prob_dist)
+
+def ent(image):
+# Example usage: for pixel intensity distribution (grayscale image)
+    image_histogram, _ = np.histogram(image.flatten(), bins=256, range=(0, 255), density=True)
+    image_entropy = calculate_entropy(image_histogram)
+    print(f'Image Entropy: {image_entropy}')
+
+
+
+
+
 
 class test_net(nn.Module):
     def __init__(self, num_layers, input_size):
@@ -283,17 +306,26 @@ if __name__ ==  '__main__':
 
 
     def write(x, batches, results):
-        c1 = tuple(x[1:3].int())
-        c2 = tuple(x[3:5].int())
+        c1 = tuple(map(int, x[1:3].tolist()))
+        c2 = tuple(map(int, x[3:5].tolist()))
         img = results[int(x[0])]
         cls = int(x[-1])
         label = "{0}".format(classes[cls])
         color = random.choice(colors)
-        cv2.rectangle(img, c1, c2,color, 1)
-        t_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_PLAIN, 1 , 1)[0]
-        c2 = c1[0] + t_size[0] + 3, c1[1] + t_size[1] + 4
-        cv2.rectangle(img, c1, c2,color, -1)
-        cv2.putText(img, label, (c1[0], c1[1] + t_size[1] + 4), cv2.FONT_HERSHEY_PLAIN, 1, [225,255,255], 1)
+
+        print(f"Coordinates c1: {c1}, c2: {c2}")  # Debugging
+
+        # Ensure coordinates are valid before drawing
+        if c1[0] >= 0 and c1[1] >= 0 and c2[0] >= 0 and c2[1] >= 0:
+            cv2.rectangle(img, c1, c2, color, 1)
+            t_size = cv2.getTextSize(label, cv2.FONT_HERSHEY_PLAIN, 1, 1)[0]
+            c2 = c1[0] + t_size[0] + 3, c1[1] + t_size[1] + 4
+            cv2.rectangle(img, c1, c2, color, -1)
+            cv2.putText(img, label, (c1[0], c1[1] + t_size[1] + 4),
+                        cv2.FONT_HERSHEY_PLAIN, 1, [225, 255, 255], 1)
+        else:
+            print("Invalid coordinates, skipping rectangle.")
+
         return img
     
             
@@ -309,7 +341,7 @@ if __name__ ==  '__main__':
     print("SUMMARY")
     print("----------------------------------------------------------")
     print("{:25s}: {}".format("Task", "Time Taken (in seconds)"))
-    print()
+    print() 
     print("{:25s}: {:2.3f}".format("Reading addresses", load_batch - read_dir))
     print("{:25s}: {:2.3f}".format("Loading batch", start_det_loop - load_batch))
     print("{:25s}: {:2.3f}".format("Detection (" + str(len(imlist)) +  " images)", output_recast - start_det_loop))
@@ -318,7 +350,6 @@ if __name__ ==  '__main__':
     print("{:25s}: {:2.3f}".format("Average time_per_img", (end - load_batch)/len(imlist)))
     print("----------------------------------------------------------")
 
-    
     torch.cuda.empty_cache()
     
     
